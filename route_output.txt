@@ -1,0 +1,19 @@
+{
+  "recommended": {
+    "name": "dummy-skill",
+    "id": "dummy-skill",
+    "version": "0.0.0",
+    "description": "A dummy skill for testing discovery",
+    "keywords": [
+      "dummy",
+      "test"
+    ],
+    "cost": "unknown",
+    "token_usage_estimate": 0,
+    "auto_discovered": true,
+    "path": "/programs/openclaw-deploy/skills/dummy-skill",
+    "score": 20
+  },
+  "alternatives": [],
+  "reason": "Selected dummy-skill because it has the highest relevance score (20) and lowest cost (unknown)."
+}

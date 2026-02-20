@@ -1,0 +1,49 @@
+{
+  "skills": [
+    {
+      "name": "rss-parser",
+      "id": "rss-parser",
+      "cost": "low",
+      "token_usage_estimate": 100,
+      "description": "Efficiently fetches structured data from RSS feeds.",
+      "keywords": ["rss", "feed", "news", "xml", "subscribe"],
+      "capability": "fetch-structured-content"
+    },
+    {
+      "name": "universal-web-summarizer",
+      "id": "universal-web-summarizer",
+      "cost": "high",
+      "token_usage_estimate": 5000,
+      "description": "Summarizes any web page, article, or video using full browser automation and vision analysis.",
+      "keywords": ["summary", "web", "url", "video", "youtube", "article", "analyze", "vision"],
+      "capability": "deep-content-analysis"
+    },
+    {
+      "name": "local-calendar-skill",
+      "id": "local-calendar-skill",
+      "cost": "low",
+      "token_usage_estimate": 50,
+      "description": "Manages local calendar events and schedules.",
+      "keywords": ["calendar", "schedule", "event", "appointment", "meeting", "agenda"],
+      "capability": "personal-schedule"
+    },
+    {
+      "name": "weather-api",
+      "id": "weather-api",
+      "cost": "low",
+      "token_usage_estimate": 50,
+      "description": "Fetches current weather information.",
+      "keywords": ["weather", "forecast", "temperature", "rain", "sun"],
+      "capability": "environment-sensing"
+    },
+    {
+      "name": "agent-browser",
+      "id": "agent-browser",
+      "cost": "high",
+      "token_usage_estimate": 3000,
+      "description": "Browses the web interactively.",
+      "keywords": ["browse", "navigate", "click", "fill", "interact"],
+      "capability": "web-interaction"
+    }
+  ]
+}

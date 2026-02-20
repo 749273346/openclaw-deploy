@@ -1,0 +1,7 @@
+{
+  "name": "local-calendar-skill",
+  "version": "1.0.0",
+  "dependencies": {
+    "date-fns": "^4.1.0"
+  }
+}

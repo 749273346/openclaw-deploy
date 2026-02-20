@@ -1,0 +1,9 @@
+{
+  "name": "universal-web-summarizer",
+  "version": "1.0.0",
+  "dependencies": {
+    "axios": "^1.13.5",
+    "puppeteer": "^24.37.5",
+    "youtube-transcript": "^1.2.1"
+  }
+}
