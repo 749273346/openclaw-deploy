@@ -22,6 +22,8 @@ function check(name, fn) {
   }
 }
 
+const os = require('os');
+
 async function runChecks() {
   console.log('🏥 Running System Health Check...');
 
@@ -34,7 +36,7 @@ async function runChecks() {
 
   // 2. Critical Configuration
   check('Configuration Integrity', () => {
-    const configPath = path.resolve(process.env.HOME, '.openclaw/openclaw.json');
+    const configPath = path.resolve(os.homedir(), '.openclaw/openclaw.json');
     if (!fs.existsSync(configPath)) throw new Error('openclaw.json missing');
     JSON.parse(fs.readFileSync(configPath, 'utf8')); // Validate JSON
     return 'Config valid';
@@ -49,12 +51,17 @@ async function runChecks() {
 
   // 4. Network Connectivity (Simulated ping)
   check('Network Connectivity', () => {
-    try {
-      execSync('ping -c 1 8.8.8.8', { stdio: 'ignore', timeout: 2000 });
-      return 'Connected';
-    } catch (e) {
-      throw new Error('Network unreachable');
+    const targets = ['223.5.5.5', '8.8.8.8'];
+    for (const target of targets) {
+      try {
+        const pingCmd = process.platform === 'win32' ? `ping -n 1 ${target}` : `ping -c 1 ${target}`;
+        execSync(pingCmd, { stdio: 'ignore', timeout: 2000 });
+        return `Connected (${target})`;
+      } catch (e) {
+        // Try next target
+      }
     }
+    throw new Error('Network unreachable');
   });
 
   // 5. Skill Registry Integrity
@@ -72,7 +79,7 @@ async function runChecks() {
   if (REPORT.status !== 'healthy') {
     console.log('⚠️ Issues detected. Initiating self-healing protocol...');
     try {
-      execSync(`node ${path.join(__dirname, 'self-heal.js')}`, { stdio: 'inherit' });
+      execSync(`node "${path.join(__dirname, 'self-heal.js')}"`, { stdio: 'inherit' });
     } catch (e) {
       console.error('Self-healing failed:', e.message);
     }
