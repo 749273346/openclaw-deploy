@@ -1,0 +1,110 @@
+#!/usr/bin/env node
+
+const fs = require('fs');
+const path = require('path');
+const { spawn } = require('child_process');
+
+const SKILLS_DIR = path.resolve(__dirname, 'skills');
+
+// Command mapping to skill scripts
+const COMMANDS = {
+  'briefing': {
+    script: 'skills/autonomous-daily-briefing/bin/fetch-news.js',
+    description: 'Generate daily AI & Tech briefing'
+  },
+  'summarize': {
+    script: 'skills/universal-web-summarizer/bin/summarize.js',
+    description: 'Summarize a web page or YouTube video (Usage: openclaw summarize <url>)'
+  },
+  'calendar': {
+    script: 'skills/local-calendar-skill/bin/calendar.js',
+    description: 'Manage local calendar (Usage: openclaw calendar list|add <args>)'
+  },
+  'health': {
+    script: 'skills/system-stabilizer/bin/health-check.js',
+    description: 'Run system health checks'
+  },
+  'heal': {
+    script: 'skills/system-stabilizer/bin/self-heal.js',
+    description: 'Attempt to self-heal system issues'
+  },
+  'route': {
+    script: 'skills/skill-optimizer/bin/route.js',
+    description: 'Find best skill for a task (Usage: openclaw route "task description")'
+  }
+};
+
+function showHelp() {
+  console.log(`
+🦁 OpenClaw CLI - Your Autonomous AI Agent Interface
+
+Usage: ./openclaw <command> [args]
+
+Available Commands:
+`);
+  for (const [cmd, info] of Object.entries(COMMANDS)) {
+    console.log(`  ${cmd.padEnd(12)} ${info.description}`);
+  }
+  console.log(`
+  install      Install a new skill (git clone to skills/ directory)
+  help         Show this help message
+`);
+}
+
+function installSkill(url) {
+  if (!url) {
+    console.error('Usage: openclaw install <git-repo-url>');
+    process.exit(1);
+  }
+  console.log(`📦 Installing skill from ${url}...`);
+  // Simple git clone wrapper
+  const git = spawn('git', ['clone', url], { cwd: SKILLS_DIR, stdio: 'inherit' });
+  git.on('close', (code) => {
+    if (code === 0) {
+      console.log('✅ Skill installed successfully!');
+      console.log('💡 Run "npm install" inside the new skill directory to setup dependencies.');
+    } else {
+      console.error('❌ Installation failed.');
+    }
+  });
+}
+
+function runCommand(cmd, args) {
+  const config = COMMANDS[cmd];
+  if (!config) {
+    if (cmd === 'install') {
+      installSkill(args[0]);
+      return;
+    }
+    console.error(`Unknown command: ${cmd}`);
+    showHelp();
+    process.exit(1);
+  }
+
+  const scriptPath = path.resolve(__dirname, config.script);
+  if (!fs.existsSync(scriptPath)) {
+    console.error(`❌ Error: Script not found at ${scriptPath}`);
+    console.error(`   Has the skill been installed correctly in ${SKILLS_DIR}?`);
+    process.exit(1);
+  }
+
+  // Spawn the node process
+  const child = spawn('node', [scriptPath, ...args], { 
+    cwd: __dirname, // Run from root to ensure relative paths work
+    stdio: 'inherit' 
+  });
+
+  child.on('close', (code) => {
+    process.exit(code);
+  });
+}
+
+// Main execution
+const args = process.argv.slice(2);
+const command = args[0];
+
+if (!command || command === 'help' || command === '--help' || command === '-h') {
+  showHelp();
+} else {
+  runCommand(command, args.slice(1));
+}
