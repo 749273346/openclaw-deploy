@@ -70,11 +70,16 @@ async function chat(message) {
 }
 
 async function startInteractiveMode() {
-  console.log('Entering interactive mode. Type "exit" or "quit" to leave.');
+  console.clear();
+  console.log('\x1b[33m%s\x1b[0m', 'openclaw tui - local - agent main - session main');
+  console.log('\x1b[90m%s\x1b[0m', 'session agent:main:main\n');
+  console.log('你好！我是你的 AI 助手，刚刚启动。看起来这是我们的第一次对话。');
+  console.log('输入 "exit" 或 "quit" 退出。\n');
+
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
-    prompt: '> '
+    prompt: '\x1b[32m> \x1b[0m'
   });
 
   rl.prompt();

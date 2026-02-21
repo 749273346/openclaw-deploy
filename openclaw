@@ -31,6 +31,18 @@ const COMMANDS = {
   'route': {
     script: 'skills/skill-optimizer/bin/route.js',
     description: 'Find best skill for a task (Usage: openclaw route "task description")'
+  },
+  'tui': {
+    script: 'interact.js',
+    description: 'Launch the interactive chat interface'
+  },
+  'chat': {
+    script: 'interact.js',
+    description: 'Launch the interactive chat interface (Alias for tui)'
+  },
+  'video': {
+    script: 'skills/video-creator/bin/create.js',
+    description: 'Create and edit videos (Usage: openclaw video check|create)'
   }
 };
 
