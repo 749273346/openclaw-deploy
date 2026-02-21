@@ -35,13 +35,38 @@ const { spawn } = require('child_process');
 const TOOLS = [
   {
     name: 'openclaw control',
-    description: 'Control mouse and keyboard. Commands: move <x> <y>, click [left|right], type <text>, press <key>, screen size',
+    description: 'Control mouse and keyboard. Commands: move <x> <y>, click [left|right], type <text>, press <key>, screen size, open <url|app>',
     usage: 'EXECUTE: openclaw control <command> <args>'
   },
   {
     name: 'openclaw video',
     description: 'Create/Edit videos. Commands: check, create',
     usage: 'EXECUTE: openclaw video <command>'
+  },
+  {
+    name: 'openclaw briefing',
+    description: 'Generate daily AI & Tech briefing',
+    usage: 'EXECUTE: openclaw briefing'
+  },
+  {
+    name: 'openclaw summarize',
+    description: 'Summarize a web page or YouTube video',
+    usage: 'EXECUTE: openclaw summarize <url>'
+  },
+  {
+    name: 'openclaw calendar',
+    description: 'Manage local calendar. Commands: list, add <event>',
+    usage: 'EXECUTE: openclaw calendar <command> <args>'
+  },
+  {
+    name: 'openclaw health',
+    description: 'Run system health checks',
+    usage: 'EXECUTE: openclaw health'
+  },
+  {
+    name: 'openclaw heal',
+    description: 'Attempt to self-heal system issues',
+    usage: 'EXECUTE: openclaw heal'
   }
 ];
 
@@ -98,7 +123,15 @@ async function executeCommand(commandStr) {
 
 const readline = require('readline');
 
+// Store conversation history
+let conversationHistory = [
+  { role: "system", content: SYSTEM_PROMPT }
+];
+
 async function chat(message) {
+  // Add user message to history
+  conversationHistory.push({ role: "user", content: message });
+  
   console.log(`🤖 OpenClaw (${provider}/${model}) is thinking...`);
   
   try {
@@ -106,10 +139,7 @@ async function chat(message) {
       'https://api.deepseek.com/chat/completions',
       {
         model: model,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: message }
-        ],
+        messages: conversationHistory,
         stream: false
       },
       {
@@ -117,11 +147,14 @@ async function chat(message) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${apiKey}`
         },
-        timeout: 30000
+        timeout: 60000 // Increased timeout
       }
     );
 
     const reply = response.data.choices[0].message.content;
+    
+    // Add assistant reply to history
+    conversationHistory.push({ role: "assistant", content: reply });
     
     // Check for tool execution
     if (reply.startsWith('EXECUTE:')) {
@@ -140,6 +173,8 @@ async function chat(message) {
     } else {
       console.error(error.message);
     }
+    // Remove the failed user message from history so we can retry
+    conversationHistory.pop();
   }
 }
 
@@ -166,16 +201,22 @@ async function startInteractiveMode() {
       return;
     }
     if (input) {
+      // Pause input while processing
       rl.pause();
       await chat(input);
+      // Resume input
       rl.resume();
     }
     rl.prompt();
   });
 }
 
-if (process.argv[2]) {
-  chat(process.argv[2]);
-} else {
-  startInteractiveMode();
+if (require.main === module) {
+  if (process.argv[2]) {
+    chat(process.argv[2]);
+  } else {
+    startInteractiveMode();
+  }
 }
+
+module.exports = { chat, startInteractiveMode };

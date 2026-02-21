@@ -10,6 +10,8 @@ const {
   Point, 
   Button 
 } = require('@nut-tree/nut-js');
+const { exec } = require('child_process');
+const os = require('os');
 
 // Parse arguments
 const args = process.argv.slice(2);
@@ -105,6 +107,29 @@ async function run() {
         } else {
             console.log('Usage: screen size');
         }
+        break;
+
+      case 'open':
+        // Usage: openclaw control open <url|app>
+        const target = params.join(' ');
+        if (!target) throw new Error('Usage: open <url|app>');
+        
+        let openCmd;
+        if (os.platform() === 'win32') {
+          openCmd = `start "" "${target}"`;
+        } else if (os.platform() === 'darwin') {
+          openCmd = `open "${target}"`;
+        } else {
+          openCmd = `xdg-open "${target}"`;
+        }
+        
+        exec(openCmd, (error) => {
+            if (error) {
+                console.error(`Failed to open: ${error.message}`);
+            } else {
+                console.log(`Opened: ${target}`);
+            }
+        });
         break;
 
       case 'help':
