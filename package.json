@@ -1,0 +1,40 @@
+{
+  "name": "openclaw-deploy",
+  "version": "1.0.0",
+  "description": "",
+  "main": "debug_path.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/749273346/openclaw-deploy.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/749273346/openclaw-deploy/issues"
+  },
+  "homepage": "https://github.com/749273346/openclaw-deploy#readme",
+  "dependencies": {
+    "@nut-tree/nut-js": "^3.1.2",
+    "axios": "^1.13.5",
+    "blessed": "^0.1.81",
+    "blessed-contrib": "^4.11.0",
+    "boxen": "^5.1.2",
+    "chalk": "^4.1.2",
+    "esbuild": "^0.27.3",
+    "esbuild-register": "^3.6.0",
+    "figlet": "^1.10.0",
+    "import-jsx": "^5.0.0",
+    "ink": "^3.2.0",
+    "ink-big-text": "^1.2.0",
+    "ink-gradient": "^2.0.0",
+    "ink-spinner": "^4.0.3",
+    "ink-text-input": "^4.0.3",
+    "ora": "^5.4.1",
+    "react": "^17.0.2"
+  }
+}

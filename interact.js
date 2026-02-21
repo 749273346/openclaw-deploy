@@ -1,21 +1,20 @@
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
+const { spawn } = require('child_process');
+const readline = require('readline');
 
-// Try to require axios from the skill directory
-let axios;
-try {
-  axios = require('./skills/autonomous-daily-briefing/node_modules/axios');
-} catch (e) {
-  console.error('Error loading axios:', e.message);
-  console.error('Please ensure dependencies are installed in skills/autonomous-daily-briefing');
-  process.exit(1);
-}
+// Load TUI libraries
+const chalk = require('chalk');
+const boxen = require('boxen');
+const ora = require('ora');
+const figlet = require('figlet');
+const axios = require('axios');
 
 // Load configuration
 const configPath = path.resolve(os.homedir(), '.openclaw/openclaw.json');
 if (!fs.existsSync(configPath)) {
-  console.error('Configuration file not found at', configPath);
+  console.error(chalk.red('Configuration file not found at ' + configPath));
   process.exit(1);
 }
 
@@ -25,18 +24,16 @@ const model = (config.llm && config.llm.model) || 'deepseek-chat';
 const provider = (config.llm && config.llm.provider) || 'deepseek';
 
 if (!apiKey) {
-  console.error('API Key not found in configuration.');
+  console.error(chalk.red('API Key not found in configuration.'));
   process.exit(1);
 }
-
-const { spawn } = require('child_process');
 
 // Define available tools
 const TOOLS = [
   {
     name: 'openclaw control',
-    description: 'Control mouse and keyboard. Commands: move <x> <y>, click [left|right], type <text>, press <key>, screen size, open <url|app>',
-    usage: 'EXECUTE: openclaw control <command> <args>'
+    description: 'Control mouse and keyboard. Commands: move <x> <y>, click [left|right], type <text>, press <key>, screen size, open <url|app>, wait <ms>',
+    usage: 'EXECUTE: openclaw control <command> <args> | openclaw control ...'
   },
   {
     name: 'openclaw video',
@@ -55,8 +52,8 @@ const TOOLS = [
   },
   {
     name: 'openclaw calendar',
-    description: 'Manage local calendar. Commands: list, add <event>',
-    usage: 'EXECUTE: openclaw calendar <command> <args>'
+    description: 'Manage calendar events. Commands: list [date], add <time> <title>, report (weekly summary)',
+    usage: 'EXECUTE: openclaw calendar <list|add|report> [args]'
   },
   {
     name: 'openclaw health',
@@ -72,56 +69,56 @@ const TOOLS = [
 
 const SYSTEM_PROMPT = `You are OpenClaw, an autonomous AI agent system with capability to control the computer and create videos.
 You are helpful, precise, and friendly.
+IMPORTANT: You MUST always reply in Simplified Chinese (简体中文) unless the user explicitly asks for another language.
 
 AVAILABLE TOOLS:
 ${TOOLS.map(t => `- ${t.name}: ${t.description} (Usage: "${t.usage}")`).join('\n')}
 
 TO USE A TOOL:
 If the user asks you to perform an action that requires a tool, your response MUST start with "EXECUTE: " followed by the command.
+You can chain multiple commands using " && " or " | ".
+
 Example:
-User: "Move the mouse to 500, 500"
-You: "EXECUTE: openclaw control move 500 500"
+User: "Move the mouse to 500, 500 then click"
+You: "EXECUTE: openclaw control move 500 500 && openclaw control click left"
 
-User: "Type 'Hello'"
-You: "EXECUTE: openclaw control type Hello"
+User: "Type 'Hello' and press Enter"
+You: "EXECUTE: openclaw control type Hello && openclaw control press Enter"
 
-If no tool is needed, just reply normally.
+If no tool is needed, just reply normally in Chinese.
 `;
 
 async function executeCommand(commandStr) {
-  console.log(`\x1b[36m⚡ Executing: ${commandStr}\x1b[0m`);
-  const parts = commandStr.trim().split(' ');
-  const cmd = parts[0];
-  const args = parts.slice(1);
+  console.log(chalk.cyan(`⚡ Executing: ${commandStr}`));
   
-  // For security, we only allow 'openclaw' commands here for now, or direct node calls if we want
-  // But our prompt generates "openclaw control ...", so we need to handle that.
-  // Since we are running 'node openclaw ...' in the shell, we can just spawn 'node' with 'openclaw' as first arg
-  // Or simpler: just spawn the command directly if it is 'openclaw'.
+  // Split commands by ' && ' or ' | '
+  const commands = commandStr.split(/ && | \| /);
   
-  // Actually, 'openclaw' is a node script in the current dir.
-  // We should resolve it.
-  
-  let spawnCmd, spawnArgs;
-  
-  if (cmd === 'openclaw') {
-    spawnCmd = 'node';
-    spawnArgs = ['openclaw', ...args];
-  } else {
-      // Fallback for safety - don't execute arbitrary commands unless explicitly allowed
-      console.log('⚠️  Command not allowed for security reasons:', cmd);
-      return;
+  for (const cmdStr of commands) {
+      if (!cmdStr.trim()) continue;
+      
+      const parts = cmdStr.trim().split(' ');
+      const cmd = parts[0];
+      const args = parts.slice(1);
+      
+      let spawnCmd, spawnArgs;
+      
+      if (cmd === 'openclaw') {
+        spawnCmd = 'node';
+        spawnArgs = ['openclaw', ...args];
+      } else {
+          console.log(chalk.yellow('⚠️  Command not allowed for security reasons:', cmd));
+          continue;
+      }
+
+      await new Promise((resolve) => {
+        const child = spawn(spawnCmd, spawnArgs, { cwd: __dirname, stdio: 'inherit', shell: true });
+        child.on('close', (code) => {
+          resolve(code);
+        });
+      });
   }
-
-  return new Promise((resolve) => {
-    const child = spawn(spawnCmd, spawnArgs, { cwd: __dirname, stdio: 'inherit', shell: true });
-    child.on('close', (code) => {
-      resolve(code);
-    });
-  });
 }
-
-const readline = require('readline');
 
 // Store conversation history
 let conversationHistory = [
@@ -132,7 +129,7 @@ async function chat(message) {
   // Add user message to history
   conversationHistory.push({ role: "user", content: message });
   
-  console.log(`🤖 OpenClaw (${provider}/${model}) is thinking...`);
+  const spinner = ora(`OpenClaw (${provider}/${model}) is thinking...`).start();
   
   try {
     const response = await axios.post(
@@ -152,6 +149,7 @@ async function chat(message) {
     );
 
     const reply = response.data.choices[0].message.content;
+    spinner.stop(); // Stop spinner before outputting
     
     // Add assistant reply to history
     conversationHistory.push({ role: "assistant", content: reply });
@@ -161,17 +159,24 @@ async function chat(message) {
         const commandToRun = reply.replace('EXECUTE:', '').trim();
         await executeCommand(commandToRun);
     } else {
-        console.log('\n🦁 OpenClaw:');
-        console.log(reply);
+        // Use boxen for AI reply
+        console.log(boxen(reply, {
+            title: '🦁 OpenClaw',
+            titleAlignment: 'center',
+            padding: 1,
+            margin: 1,
+            borderStyle: 'round',
+            borderColor: 'cyan'
+        }));
     }
     
   } catch (error) {
-    console.error('Error communicating with LLM:');
+    spinner.fail('Error communicating with LLM');
     if (error.response) {
-      console.error(`Status: ${error.response.status}`);
-      console.error(JSON.stringify(error.response.data, null, 2));
+      console.error(chalk.red(`Status: ${error.response.status}`));
+      console.error(chalk.red(JSON.stringify(error.response.data, null, 2)));
     } else {
-      console.error(error.message);
+      console.error(chalk.red(error.message));
     }
     // Remove the failed user message from history so we can retry
     conversationHistory.pop();
@@ -180,15 +185,23 @@ async function chat(message) {
 
 async function startInteractiveMode() {
   console.clear();
-  console.log('\x1b[33m%s\x1b[0m', 'openclaw tui - local - agent main - session main');
-  console.log('\x1b[90m%s\x1b[0m', 'session agent:main:main\n');
-  console.log('你好！我是你的 AI 助手，刚刚启动。看起来这是我们的第一次对话。');
-  console.log('输入 "exit" 或 "quit" 退出。\n');
+  
+  // Fancy title
+  console.log(chalk.magenta(figlet.textSync('OpenClaw', { horizontalLayout: 'full' })));
+  
+  console.log(boxen(`Session: ${new Date().toLocaleString()}\nAgent: Main\nMode: Interactive`, {
+      padding: 1,
+      margin: 1,
+      borderStyle: 'double',
+      borderColor: 'yellow'
+  }));
+  
+  console.log(chalk.green('你好！我是你的 AI 助手。输入 "exit" 或 "quit" 退出。'));
 
   const rl = readline.createInterface({
     input: process.stdin,
     output: process.stdout,
-    prompt: '\x1b[32m> \x1b[0m'
+    prompt: chalk.green('User > ')
   });
 
   rl.prompt();
@@ -201,11 +214,7 @@ async function startInteractiveMode() {
       return;
     }
     if (input) {
-      // Pause input while processing
-      rl.pause();
       await chat(input);
-      // Resume input
-      rl.resume();
     }
     rl.prompt();
   });

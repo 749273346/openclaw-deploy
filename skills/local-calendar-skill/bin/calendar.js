@@ -2,7 +2,7 @@
 
 const fs = require('fs');
 const path = require('path');
-const { format, isSameDay, parseISO } = require('date-fns');
+const { format, isSameDay, parseISO, subDays, isAfter, isBefore } = require('date-fns');
 
 // Relative path to memory storage
 const CALENDAR_FILE = path.resolve(__dirname, '../../elite-longterm-memory/memory/calendar.json');
@@ -38,6 +38,26 @@ function listEvents(dateStr) {
     console.log('No events scheduled for today.');
   } else {
     console.log(todaysEvents.map(e => `- [${format(parseISO(e.start), 'HH:mm')}] ${e.title}`).join('\n'));
+  }
+}
+
+function generateWeeklyReport() {
+  const events = loadEvents();
+  const now = new Date();
+  const oneWeekAgo = subDays(now, 7);
+  
+  const weeklyEvents = events.filter(e => {
+    const eventDate = parseISO(e.start);
+    return isAfter(eventDate, oneWeekAgo) && isBefore(eventDate, now);
+  });
+  
+  if (weeklyEvents.length === 0) {
+    console.log('No events found in the past week.');
+  } else {
+    console.log('Weekly Report Summary (Last 7 Days):');
+    weeklyEvents.forEach(e => {
+      console.log(`- [${format(parseISO(e.start), 'yyyy-MM-dd HH:mm')}] ${e.title}`);
+    });
   }
 }
 
@@ -84,6 +104,9 @@ switch (command) {
   case 'init':
     console.log('Calendar initialized at ' + CALENDAR_FILE);
     break;
+  case 'report':
+    generateWeeklyReport();
+    break;
   default:
-    console.log('Usage: calendar <list|add> [args]');
+    console.log('Usage: calendar <list|add|report> [args]');
 }

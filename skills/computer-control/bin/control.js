@@ -132,6 +132,14 @@ async function run() {
         });
         break;
 
+      case 'wait':
+        // Usage: openclaw control wait <ms>
+        const ms = parseInt(params[0]);
+        if (isNaN(ms)) throw new Error('Usage: wait <ms>');
+        await new Promise(resolve => setTimeout(resolve, ms));
+        console.log(`Waited ${ms}ms`);
+        break;
+
       case 'help':
       default:
         console.log(`
