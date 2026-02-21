@@ -43,6 +43,10 @@ const COMMANDS = {
   'video': {
     script: 'skills/video-creator/bin/create.js',
     description: 'Create and edit videos (Usage: openclaw video check|create)'
+  },
+  'control': {
+    script: 'skills/computer-control/bin/control.js',
+    description: 'Control mouse and keyboard (Usage: openclaw control move|click|type|press <args>)'
   }
 };
 

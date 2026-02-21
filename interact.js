@@ -29,6 +29,73 @@ if (!apiKey) {
   process.exit(1);
 }
 
+const { spawn } = require('child_process');
+
+// Define available tools
+const TOOLS = [
+  {
+    name: 'openclaw control',
+    description: 'Control mouse and keyboard. Commands: move <x> <y>, click [left|right], type <text>, press <key>, screen size',
+    usage: 'EXECUTE: openclaw control <command> <args>'
+  },
+  {
+    name: 'openclaw video',
+    description: 'Create/Edit videos. Commands: check, create',
+    usage: 'EXECUTE: openclaw video <command>'
+  }
+];
+
+const SYSTEM_PROMPT = `You are OpenClaw, an autonomous AI agent system with capability to control the computer and create videos.
+You are helpful, precise, and friendly.
+
+AVAILABLE TOOLS:
+${TOOLS.map(t => `- ${t.name}: ${t.description} (Usage: "${t.usage}")`).join('\n')}
+
+TO USE A TOOL:
+If the user asks you to perform an action that requires a tool, your response MUST start with "EXECUTE: " followed by the command.
+Example:
+User: "Move the mouse to 500, 500"
+You: "EXECUTE: openclaw control move 500 500"
+
+User: "Type 'Hello'"
+You: "EXECUTE: openclaw control type Hello"
+
+If no tool is needed, just reply normally.
+`;
+
+async function executeCommand(commandStr) {
+  console.log(`\x1b[36m⚡ Executing: ${commandStr}\x1b[0m`);
+  const parts = commandStr.trim().split(' ');
+  const cmd = parts[0];
+  const args = parts.slice(1);
+  
+  // For security, we only allow 'openclaw' commands here for now, or direct node calls if we want
+  // But our prompt generates "openclaw control ...", so we need to handle that.
+  // Since we are running 'node openclaw ...' in the shell, we can just spawn 'node' with 'openclaw' as first arg
+  // Or simpler: just spawn the command directly if it is 'openclaw'.
+  
+  // Actually, 'openclaw' is a node script in the current dir.
+  // We should resolve it.
+  
+  let spawnCmd, spawnArgs;
+  
+  if (cmd === 'openclaw') {
+    spawnCmd = 'node';
+    spawnArgs = ['openclaw', ...args];
+  } else {
+      // Fallback for safety - don't execute arbitrary commands unless explicitly allowed
+      console.log('⚠️  Command not allowed for security reasons:', cmd);
+      return;
+  }
+
+  return new Promise((resolve) => {
+    const child = spawn(spawnCmd, spawnArgs, { cwd: __dirname, stdio: 'inherit', shell: true });
+    child.on('close', (code) => {
+      resolve(code);
+    });
+  });
+}
+
 const readline = require('readline');
 
 async function chat(message) {
@@ -40,7 +107,7 @@ async function chat(message) {
       {
         model: model,
         messages: [
-          { role: "system", content: "You are OpenClaw, an autonomous AI agent system. You are helpful, precise, and friendly." },
+          { role: "system", content: SYSTEM_PROMPT },
           { role: "user", content: message }
         ],
         stream: false
@@ -55,8 +122,15 @@ async function chat(message) {
     );
 
     const reply = response.data.choices[0].message.content;
-    console.log('\n🦁 OpenClaw:');
-    console.log(reply);
+    
+    // Check for tool execution
+    if (reply.startsWith('EXECUTE:')) {
+        const commandToRun = reply.replace('EXECUTE:', '').trim();
+        await executeCommand(commandToRun);
+    } else {
+        console.log('\n🦁 OpenClaw:');
+        console.log(reply);
+    }
     
   } catch (error) {
     console.error('Error communicating with LLM:');

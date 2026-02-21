@@ -44,6 +44,24 @@
       "description": "Browses the web interactively.",
       "keywords": ["browse", "navigate", "click", "fill", "interact"],
       "capability": "web-interaction"
+    },
+    {
+      "name": "video-creator",
+      "id": "video-creator",
+      "cost": "high",
+      "token_usage_estimate": 2000,
+      "description": "Creates and edits videos using FFmpeg and AI generation.",
+      "keywords": ["video", "clip", "create", "ffmpeg", "edit", "movie"],
+      "capability": "video-production"
+    },
+    {
+      "name": "computer-control",
+      "id": "computer-control",
+      "cost": "medium",
+      "token_usage_estimate": 500,
+      "description": "Controls the computer's mouse and keyboard directly.",
+      "keywords": ["mouse", "keyboard", "click", "type", "press", "move", "control"],
+      "capability": "desktop-automation"
     }
   ]
 }
